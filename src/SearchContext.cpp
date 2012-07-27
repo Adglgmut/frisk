@@ -527,6 +527,11 @@ void SearchContext::searchProc()
                 poke(id, "", HighlightList(), 0, false);
             }
         }
+
+        if(findHandle != INVALID_HANDLE_VALUE)
+        {
+            FindClose(findHandle);
+        }
     }
 
 cleanup:
@@ -555,10 +560,6 @@ cleanup:
             filesSkipped_,
             sec);
         poke(id, buffer, HighlightList(), 0, true);
-    }
-    if(findHandle != INVALID_HANDLE_VALUE)
-    {
-        FindClose(findHandle);
     }
     delete pokeData_;
 	pokeData_ = NULL;
