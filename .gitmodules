@@ -1,0 +1,3 @@
+[submodule "external/dynamic"]
+	path = external/dynamic
+	url = https://github.com/joedrago/dynamic.git
