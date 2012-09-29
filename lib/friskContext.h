@@ -4,6 +4,8 @@
 // Shamelessly mimicking Microsoft's RGB()
 #define FRISKCOLOR(r, g, b) ((unsigned int)(((unsigned char)(r)|((unsigned int)((unsigned char)(g)) << 8))|(((unsigned int)(unsigned char)(b)) << 16)))
 
+// ------------------------------------------------------------------------------------------------
+
 typedef enum friskSearchFlag
 {
     FSF_RECURSIVE               = (1 << 0),
@@ -17,6 +19,8 @@ typedef enum friskSearchFlag
 
     FSF_COUNT
 } friskSearchFlag;
+
+// ------------------------------------------------------------------------------------------------
 
 typedef struct friskSavedSearch
 {
@@ -33,8 +37,11 @@ typedef struct friskSavedSearch
 friskSavedSearch * friskSavedSearchCreate();
 void friskSavedSearchDestroy(friskSavedSearch * savedSearch);
 
+// ------------------------------------------------------------------------------------------------
+
 typedef struct friskConfig
 {
+#ifdef NOT_NET
     int windowX;
     int windowY;
     int windowW;
@@ -46,7 +53,8 @@ typedef struct friskConfig
     int backgroundColor;
     int highlightColor;
 
-    char *cmdTemplate;
+    char * cmdTemplate;
+#endif
 
     char ** matches;
     char ** paths;
@@ -63,5 +71,88 @@ void friskConfigDestroy(friskConfig * config);
 void friskConfigDefaults(friskConfig * config);
 int friskConfigLoad(friskConfig * config, const char * filename);
 int friskConfigSave(friskConfig * config, const char * filename);
+
+// ------------------------------------------------------------------------------------------------
+
+typedef struct friskHighlight
+{
+    int offset;
+    int count;
+} friskHighlight;
+
+friskHighlight * friskHighlightCreate();
+void friskHighlightDestroy(friskHighlight *highlight);
+
+// ------------------------------------------------------------------------------------------------
+
+typedef struct friskEntry
+{
+    char * filename;
+    char * match;
+    friskHighlight ** highlights;
+    int line;
+    int offset;
+} friskEntry;
+
+friskEntry * friskEntryCreate();
+void friskEntryDestroy(friskEntry *entry);
+
+// ------------------------------------------------------------------------------------------------
+
+typedef struct friskParams
+{
+    char ** paths;
+    char ** filespecs;
+    char * match;
+    char * replace;
+    char * backupExtension;
+    unsigned long long maxFileSize;
+    int flags;
+} friskParams;
+
+friskParams * friskParamsCreate();
+void friskParamsDestroy(friskParams *params);
+
+// ------------------------------------------------------------------------------------------------
+
+#ifdef NOT_YET
+typedef struct friskPokeData
+{
+    char *progress;
+    char *text;
+    friskHighlight ** highlights;
+} friskPokeData;
+#endif
+
+typedef struct friskContext
+{
+#ifdef NOT_YET
+    int directoriesSearched;
+    int directoriesSkipped;
+    int filesSearched;
+    int filesSkipped;
+    int filesWithHits;
+    int linesWithHits;
+    int hits;
+
+    //HANDLE mutex;
+    //HANDLE thread;
+
+    int stop;
+    int searchID;
+    int offset;
+    unsigned int lastPoke;
+    friskPokeData * pokeData;
+#endif
+
+    friskEntry **list;
+    friskParams * params;
+    friskConfig * config;
+} friskContext;
+
+friskContext * friskContextCreate();
+void friskContextDestroy(friskContext *context);
+
+// ------------------------------------------------------------------------------------------------
 
 #endif

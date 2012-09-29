@@ -37,13 +37,14 @@ void friskConfigDestroy(friskConfig * config)
     daDestroyStrings(&config->replaces);
     daDestroyStrings(&config->backupExtensions);
     daDestroyStrings(&config->fileSizes);
+    daDestroy(&config->savedSearches, friskSavedSearchDestroy);
 
     free(config);
 }
 
 void friskConfigDefaults(friskConfig * config)
 {
-    // Defaults go here; may be overridden by jsonGet*()
+#ifdef NOT_NET
     config->windowX = 0;
     config->windowY = 0;
     config->windowW = 0;
@@ -55,6 +56,7 @@ void friskConfigDefaults(friskConfig * config)
     config->backgroundColor = FRISKCOLOR(224, 224, 224);
     config->highlightColor = FRISKCOLOR(255, 0, 0);
     dsCopy(&config->cmdTemplate, "notepad.exe \"!FILENAME!\"");
+#endif
     daPush(&config->backupExtensions, dsDup("friskbackup"));
     daPush(&config->fileSizes, dsDup("5000"));
     daPush(&config->paths, dsDup("."));
@@ -69,4 +71,69 @@ int friskConfigLoad(friskConfig * config, const char * filename)
 int friskConfigSave(friskConfig * config, const char * filename)
 {
     return 0;
+}
+
+// ------------------------------------------------------------------------------------------------
+
+friskHighlight * friskHighlightCreate()
+{
+    friskHighlight *entry = (friskHighlight *)calloc(1, sizeof(friskHighlight));
+    return entry;
+}
+
+void friskHighlightDestroy(friskHighlight *highlight)
+{
+    free(highlight);
+}
+
+// ------------------------------------------------------------------------------------------------
+
+friskEntry * friskEntryCreate()
+{
+    friskEntry *entry = (friskEntry *)calloc(1, sizeof(friskEntry));
+    return entry;
+}
+
+void friskEntryDestroy(friskEntry *entry)
+{
+    dsDestroy(&entry->filename);
+    dsDestroy(&entry->match);
+    daDestroy(&entry->highlights, friskHighlightDestroy);
+    free(entry);
+}
+
+// ------------------------------------------------------------------------------------------------
+
+friskParams * friskParamsCreate()
+{
+    friskParams *params = (friskParams *)calloc(1, sizeof(friskParams));
+    return params;
+}
+
+void friskParamsDestroy(friskParams *params)
+{
+    daDestroyStrings(&params->paths);
+    daDestroyStrings(&params->filespecs);
+    dsDestroy(&params->match);
+    dsDestroy(&params->replace);
+    dsDestroy(&params->backupExtension);
+    free(params);
+}
+
+// ------------------------------------------------------------------------------------------------
+
+friskContext * friskContextCreate()
+{
+    friskContext *context = (friskContext *)calloc(1, sizeof(friskContext));
+    context->params = friskParamsCreate();
+    context->config = friskConfigCreate();
+    return context;
+}
+
+void friskContextDestroy(friskContext *context)
+{
+    daDestroy(&context->list, friskEntryDestroy);
+    friskParamsDestroy(context->params);
+    friskConfigDestroy(context->config);
+    free(context);
 }
