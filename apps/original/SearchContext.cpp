@@ -90,23 +90,27 @@ void SearchContext::clear()
 
 std::string SearchContext::generateDisplay(SearchEntry &entry, int &textOffset)
 {
-	char middle[64];
-	sprintf(middle, "(%d): ", entry.line_);
+    char middle[64];
+    sprintf(middle, "(%d): ", entry.line_);
 
-	std::string s = entry.filename_.c_str();
-	if(params_.flags & SF_TRIM_FILENAMES)
-	{
-		std::string &startingPath = params_.paths[0];
-		if(strstri((char *)s.c_str(), startingPath.c_str()) == s.c_str())
-		{
-			s = s.substr(startingPath.length() + 1);
-		}
-	}
+    std::string s = entry.filename_.c_str();
+    if(params_.flags & SF_TRIM_FILENAMES)
+    {
+        std::string &startingPath = params_.paths[0];
+        if(strstri((char *)s.c_str(), startingPath.c_str()) == s.c_str())
+        {
+            s = s.substr(startingPath.length());
+            if(s.length() && (s[0] == '\\'))
+            {
+                s.erase(s.begin());
+            }
+        }
+    }
 
-	s += middle;
-	textOffset = s.length();
-	s += entry.match_;
-	s += "\n";
+    s += middle;
+    textOffset = s.length();
+    s += entry.match_;
+    s += "\n";
     return s;
 }
 
@@ -114,7 +118,7 @@ void SearchContext::append(int id, SearchEntry &entry)
 {
     lock();
 
-	int textOffset = 0;
+    int textOffset = 0;
     std::string str = generateDisplay(entry, textOffset);
     offset_ += str.length() - 1;
 
@@ -129,14 +133,14 @@ void SearchContext::append(int id, SearchEntry &entry)
 void SearchContext::poke(int id, const std::string &str, HighlightList &highlights, int highlightOffset, bool finished)
 {
     if(!str.empty())
-	{
-		int additionalOffset = pokeData_->text.length() + highlightOffset;
+    {
+        int additionalOffset = pokeData_->text.length() + highlightOffset;
         pokeData_->text += str;
-		for(HighlightList::iterator it = highlights.begin(); it != highlights.end(); ++it)
-		{
-			pokeData_->highlights.push_back(Highlight(it->offset + additionalOffset, it->count));
-		}
-	}
+        for(HighlightList::iterator it = highlights.begin(); it != highlights.end(); ++it)
+        {
+            pokeData_->highlights.push_back(Highlight(it->offset + additionalOffset, it->count));
+        }
+    }
 
     if(window_ != INVALID_HANDLE_VALUE)
     {
@@ -238,7 +242,7 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
     {
         char *originalLine = line;
         std::string replacedLine;
-		SearchEntry entry;
+        SearchEntry entry;
         int ovector[100];
         do
         {
@@ -276,7 +280,7 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
                 if(matches)
                 {
                     replacedLine.append(line, matchPos);
-					entry.highlights_.push_back(Highlight(replacedLine.length(), params_.replace.length()));
+                    entry.highlights_.push_back(Highlight(replacedLine.length(), params_.replace.length()));
                     replacedLine.append(params_.replace);
                     line += matchPos + matchLen;
                 }
@@ -292,13 +296,13 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
                     entry.filename_ = filename;
                     entry.match_ = originalLine;
                     entry.line_ = lineNumber;
-					entry.highlights_.push_back(Highlight(matchPos + (line - originalLine), matchLen));
-					line += matchPos + matchLen;
+                    entry.highlights_.push_back(Highlight(matchPos + (line - originalLine), matchLen));
+                    line += matchPos + matchLen;
                 }
-				else
-				{
-					break;
-				}
+                else
+                {
+                    break;
+                }
             }
 
             if(matches)
@@ -326,12 +330,12 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
             replacedLine += "\n";
             updatedContents += replacedLine;
         }
-		else
-		{
-			if(!entry.filename_.empty())
-				append(id, entry);
-		}
-		lineNumber++;
+        else
+        {
+            if(!entry.filename_.empty())
+                append(id, entry);
+        }
+        lineNumber++;
     }
     if(atLeastOneMatch)
         filesWithHits_++;
@@ -339,38 +343,38 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
     {
         if((contents != updatedContents))
         {
-			bool overwriteFile = true;
-			if(params_.flags & SF_BACKUP)
-			{
-				std::string backupFilename = filename;
-				backupFilename += ".";
-				backupFilename += params_.backupExtension;
+            bool overwriteFile = true;
+            if(params_.flags & SF_BACKUP)
+            {
+                std::string backupFilename = filename;
+                backupFilename += ".";
+                backupFilename += params_.backupExtension;
 
-				if(!writeEntireFile(backupFilename, contents))
-				{
-					std::string err = "WARNING: Couldn't write backup file (skipping replacement): ";
-					err += backupFilename;
-					err += "\n";
-					poke(id, err.c_str(), HighlightList(), 0, false);
+                if(!writeEntireFile(backupFilename, contents))
+                {
+                    std::string err = "WARNING: Couldn't write backup file (skipping replacement): ";
+                    err += backupFilename;
+                    err += "\n";
+                    poke(id, err.c_str(), HighlightList(), 0, false);
 
-					overwriteFile = false;
-				}
-			}
+                    overwriteFile = false;
+                }
+            }
 
-			if(overwriteFile)
-			{
-				if(writeEntireFile(filename, updatedContents))
-				{
-					return true;
-				}
-				else
-				{
-					std::string err = "WARNING: Couldn't write to file: ";
-					err += filename;
-					err += "\n";
-					poke(id, err.c_str(), HighlightList(), 0, false);
-				}
-			}
+            if(overwriteFile)
+            {
+                if(writeEntireFile(filename, updatedContents))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::string err = "WARNING: Couldn't write to file: ";
+                    err += filename;
+                    err += "\n";
+                    poke(id, err.c_str(), HighlightList(), 0, false);
+                }
+            }
         }
         return false;
     }
@@ -434,8 +438,8 @@ void SearchContext::searchProc()
     bool filespecUsesRegexes = ((params_.flags & SF_FILESPEC_REGEXES) != 0);
     bool matchUsesRegexes    = ((params_.flags & SF_MATCH_REGEXES) != 0);
 
-	delete pokeData_;
-	pokeData_ = new PokeData;
+    delete pokeData_;
+    pokeData_ = new PokeData;
 
     if(matchUsesRegexes)
     {
@@ -506,7 +510,10 @@ void SearchContext::searchProc()
             }
 
             std::string filename = currentSearchPath;
-            filename += "\\";
+            if(!filename.length() || (filename[filename.length() - 1] != '\\'))
+            {
+                filename += "\\";
+            }
             filename += wfd.cFileName;
 
             if(isDirectory)
@@ -562,7 +569,7 @@ cleanup:
         poke(id, buffer, HighlightList(), 0, true);
     }
     delete pokeData_;
-	pokeData_ = NULL;
+    pokeData_ = NULL;
     PostMessage(window_, WM_SEARCHCONTEXT_STATE, 0, 0);
 }
 
