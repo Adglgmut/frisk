@@ -244,6 +244,15 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
         std::string replacedLine;
         SearchEntry entry;
         int ovector[100];
+
+		bool hasCarriageReturn = false;
+		int lineLen = strlen(line);
+		if(lineLen && (line[lineLen - 1] == '\r'))
+		{
+			line[lineLen - 1] = 0;
+			hasCarriageReturn = true;
+		}
+
         do
         {
             bool matches = false;
@@ -327,6 +336,10 @@ bool SearchContext::searchFile(int id, const std::string &filename, RegexList &f
                 entry.line_ = lineNumber;
                 append(id, entry);
             }
+			if(hasCarriageReturn)
+			{
+				replacedLine += "\r";
+			}
             replacedLine += "\n";
             updatedContents += replacedLine;
         }
