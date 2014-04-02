@@ -60,6 +60,11 @@ public:
 	void onDelete();
     void onSavedSearch(WPARAM wParam, LPARAM lParam);
 protected:
+
+	void getFileOpenCommand(const SearchEntry *searchEntry, const std::string &cmdTemplate, std::string &cmd_out);
+	bool getAssociatedExecutableForFile(const std::string &filename, std::string &exe_out);
+	
+
     HINSTANCE instance_;
     HFONT font_;
     HWND dialog_;

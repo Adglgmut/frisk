@@ -109,12 +109,13 @@ void SettingsWindow::onHighlightColor()
 
 void SettingsWindow::onCmdNotepad()
 {
-    setWindowText(GetDlgItem(dialog_, IDC_CMD), "notepad.exe \"!FILENAME!\"");
+    setWindowText(GetDlgItem(dialog_, IDC_CMD), SearchConfig::getNotepadCmd());
 }
+
 
 void SettingsWindow::onCmdAssoc()
 {
-    setWindowText(GetDlgItem(dialog_, IDC_CMD), "cmd.exe /c start \"Frisk\" \"!FILENAME!\"");
+    setWindowText(GetDlgItem(dialog_, IDC_CMD), SearchConfig::getDefaultCmdAssoc());
 }
 
 static INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)

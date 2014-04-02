@@ -45,6 +45,24 @@ struct SavedSearch
 
 typedef std::vector<SavedSearch> SavedSearchList;
 
+struct FileTypeRedirection
+{
+	std::string ext;
+	std::string redirectExt;
+};
+
+typedef std::hash<FileTypeRedirection> FileTypeRedirectionHash;
+
+
+struct SmartCommandTemplates
+{
+	std::string exe;
+	std::string cmdTemplate;
+};
+
+typedef std::hash<SmartCommandTemplates> SmartCommandTemplatesHash;
+
+
 class SearchConfig
 {
 public:
@@ -75,6 +93,10 @@ public:
 	int highlightColor_;
 
 	SavedSearchList savedSearches_;
+
+	static const char* getDefaultCmdAssoc();
+	static const char* getNotepadCmd();
+
 };
 
 #endif

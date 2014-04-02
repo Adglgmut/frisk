@@ -16,6 +16,20 @@
 // ------------------------------------------------------------------------------------------------
 // Helper functions
 
+// returns the default command for using the associated executable to open the file
+/*static */const char* SearchConfig::getDefaultCmdAssoc()
+{
+	return "cmd.exe /c start \"Frisk\" \"!FILENAME!\"";
+}
+
+// returns the default command for using notepad to open the file
+/*static*/ const char* SearchConfig::getNotepadCmd()
+{
+	return "notepad.exe \"!FILENAME!\"";
+}
+
+
+
 static std::string calcConfigFilename()
 {
     char buffer[MAX_PATH];

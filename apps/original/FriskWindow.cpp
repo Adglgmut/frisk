@@ -8,8 +8,10 @@
 #include "FriskWindow.h"
 #include "SettingsWindow.h"
 #include "resource.h"
-
 #include <Commdlg.h>
+#include <ShellAPI.h>
+#include <Shlwapi.h>
+#include <assert.h>
 
 static FriskWindow *sWindow = NULL;
 
@@ -683,6 +685,76 @@ void FriskWindow::onSavedSearch(WPARAM wParam, LPARAM lParam)
     }
 }
 
+bool FriskWindow::getAssociatedExecutableForFile(const std::string &filename, std::string &exe_out)
+{
+	char exeBufferOut[MAX_PATH] = {0};
+
+	DWORD bufLen = MAX_PATH;
+	if (S_OK == AssocQueryString(ASSOCF_INIT_IGNOREUNKNOWN, ASSOCSTR_EXECUTABLE, 
+		filename.c_str(), "open", exeBufferOut, &bufLen))
+	{
+		exe_out = exeBufferOut;
+		return true;
+	}
+
+	HINSTANCE ret = FindExecutable(filename.c_str(), NULL, exeBufferOut);
+	if (exeBufferOut[0] != 0)
+	{
+		exe_out = exeBufferOut;
+		return true;
+	}
+
+	return false;
+}
+
+// gets the command to run on the file and puts it into the cmd_out parameter
+void FriskWindow::getFileOpenCommand(const SearchEntry *searchEntry, const std::string &cmdTemplate, std::string &cmd_out)
+{
+	cmd_out = cmdTemplate;
+	char lineBuffer[32];
+
+	sprintf(lineBuffer, "%d", searchEntry->line_);
+
+	if (cmd_out.size() == 0)
+	{	// empty command, try and find the right executable and configure the command to go to the right line
+		std::string exeName;
+		
+		if (getAssociatedExecutableForFile(searchEntry->filename_, exeName))
+		{
+			const char *exename = PathFindFileName(exeName.c_str());
+			const char *pszFormat = NULL;
+
+			if (!stricmp(exename, "textpad.exe"))
+			{
+				pszFormat = "!EXE! \"!FILENAME!\"(!LINE!,0)";
+			}
+			else if (!stricmp(exename, "editplus.exe"))
+			{
+				pszFormat = "!EXE! \"!FILENAME!\" -cursor !LINE!:0";
+			}
+			else
+			{
+				pszFormat = "!EXE! \"!FILENAME!\"";
+			}
+
+			assert(pszFormat);
+
+			cmd_out = pszFormat;
+			replaceAll(cmd_out, "!EXE!", exeName.c_str());
+			replaceAll(cmd_out, "!FILENAME!", searchEntry->filename_.c_str());
+			replaceAll(cmd_out, "!LINE!", lineBuffer);
+			return;
+		}
+
+		// fell through, we couldn't find an executable for this, just open with notepad
+		cmd_out = SearchConfig::getNotepadCmd();
+	}
+	
+	// 
+	replaceAll(cmd_out, "!LINE!", lineBuffer);
+	replaceAll(cmd_out, "!FILENAME!", searchEntry->filename_.c_str());
+}
+
 void FriskWindow::onDoubleClickOutput()
 {
     CHARRANGE charRange;
@@ -704,21 +776,23 @@ void FriskWindow::onDoubleClickOutput()
     if(entry)
     {
         //std::string cmd = "c:\\vim\\vim73\\gvim.exe --remote-silent +!LINE! +zz \"!FILENAME!\"";
-        std::string cmd = config_->cmdTemplate_;
-        char lineBuffer[32];
-        sprintf(lineBuffer, "%d", entry->line_);
-        replaceAll(cmd, "!LINE!", lineBuffer);
-        replaceAll(cmd, "!FILENAME!", entry->filename_.c_str());
+        std::string cmd;
+       
+		getFileOpenCommand(entry, config_->cmdTemplate_, cmd);
 
-        PROCESS_INFORMATION pi;
-        STARTUPINFO si;
-        ZeroMemory(&si, sizeof(STARTUPINFO));
-        si.cb = sizeof(STARTUPINFO);
-        if(CreateProcess(NULL, (char *)cmd.c_str(), NULL, NULL, TRUE, DETACHED_PROCESS, NULL, NULL, &si, &pi))
-        {
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
-        }
+		if (cmd.size() > 0)
+		{
+			PROCESS_INFORMATION pi;
+			STARTUPINFO si;
+			ZeroMemory(&si, sizeof(STARTUPINFO));
+			si.cb = sizeof(STARTUPINFO);
+			if(CreateProcess(NULL, (char *)cmd.c_str(), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
+			{
+				CloseHandle(pi.hProcess);
+				CloseHandle(pi.hThread);
+			}
+		}
+
     }
     context_->unlock();
 }
