@@ -102,6 +102,8 @@ public:
     int searchID();
 
     void searchProc();
+	HWND getWindow() const { return window_; }
+
 protected:
     bool searchFile(int id, const std::string &filename, RegexList &filespecRegexes, pcre *matchRegex);
 

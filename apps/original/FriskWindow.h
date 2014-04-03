@@ -39,6 +39,7 @@ public:
     INT_PTR onMove(WPARAM wParam, LPARAM lParam);
     INT_PTR onSize(WPARAM wParam, LPARAM lParam);
     INT_PTR onShow(WPARAM wParam, LPARAM lParam);
+	INT_PTR onContextMenu(WPARAM wParam, LPARAM lParam);
 
     void search(int extraFlags);
 	bool ensureSavedSearchNameExists();
@@ -62,8 +63,18 @@ public:
 protected:
 
 	void getFileOpenCommand(const SearchEntry *searchEntry, const std::string &cmdTemplate, std::string &cmd_out);
+	void runCommandOnSearchEntry(const SearchEntry *pEntry);
+
 	bool getAssociatedExecutableForFile(const std::string &filename, std::string &exe_out);
 	
+	// pops up the context menu for the search window at the given location, using the position to get the row
+	void popSearchWindowContextMenu(POINT *pt);
+	
+	// returns a SearchEntry based on the character offset
+	const SearchEntry* getSearchEntryByOffset(int offset);
+
+	// copies the given string to window's clipboard
+	void setStringClipboardData(const std::string &str);
 
     HINSTANCE instance_;
     HFONT font_;
@@ -77,8 +88,9 @@ protected:
 	HWND backupExtCtrl_;
     HWND fileSizesCtrl_;
 	HWND savedSearchesCtrl_;
-    SearchContext *context_;
+	SearchContext *context_;
     SearchConfig *config_;
+	
     bool running_;
     bool closing_;
 };

@@ -12,6 +12,8 @@
 #include <ShellAPI.h>
 #include <Shlwapi.h>
 #include <assert.h>
+#include <Windowsx.h>
+#include <shlobj.h>
 
 static FriskWindow *sWindow = NULL;
 
@@ -123,6 +125,7 @@ FriskWindow::~FriskWindow()
     DeleteObject(font_);
     delete context_;
     sWindow = NULL;
+
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -471,8 +474,10 @@ INT_PTR FriskWindow::onNotify(WPARAM wParam, LPARAM lParam)
                 {
                     onDoubleClickOutput();
                 }
+				
             }
             break;
+
         };
     }
 
@@ -778,6 +783,28 @@ void FriskWindow::getFileOpenCommand(const SearchEntry *searchEntry, const std::
 	replaceAll(cmd_out, "!FILENAME!", searchEntry->filename_.c_str());
 }
 
+void FriskWindow::runCommandOnSearchEntry(const SearchEntry *pEntry)
+{
+	//std::string cmd = "c:\\vim\\vim73\\gvim.exe --remote-silent +!LINE! +zz \"!FILENAME!\"";
+	std::string cmd;
+
+	getFileOpenCommand(pEntry, config_->cmdTemplate_, cmd);
+
+	if (cmd.size() > 0)
+	{
+		PROCESS_INFORMATION pi;
+		STARTUPINFO si;
+		ZeroMemory(&si, sizeof(STARTUPINFO));
+		si.cb = sizeof(STARTUPINFO);
+		if(CreateProcess(NULL, (char *)cmd.c_str(), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
+		{
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
+		}
+	}
+}
+
+
 void FriskWindow::onDoubleClickOutput()
 {
     CHARRANGE charRange;
@@ -786,39 +813,15 @@ void FriskWindow::onDoubleClickOutput()
     int offset = charRange.cpMin;
 
     context_->lock();
-    SearchList &list = context_->list();
-    const SearchEntry *entry = NULL;
-    for(SearchList::const_iterator it = list.begin(); it != list.end(); ++it)
-    {
-        if(it->offset_ > offset)
-        {
-            entry = &(*it);
-            break;
-        }
-    }
+	const SearchEntry *entry = getSearchEntryByOffset(offset);
+    
     if(entry)
     {
-        //std::string cmd = "c:\\vim\\vim73\\gvim.exe --remote-silent +!LINE! +zz \"!FILENAME!\"";
-        std::string cmd;
-       
-		getFileOpenCommand(entry, config_->cmdTemplate_, cmd);
-
-		if (cmd.size() > 0)
-		{
-			PROCESS_INFORMATION pi;
-			STARTUPINFO si;
-			ZeroMemory(&si, sizeof(STARTUPINFO));
-			si.cb = sizeof(STARTUPINFO);
-			if(CreateProcess(NULL, (char *)cmd.c_str(), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
-			{
-				CloseHandle(pi.hProcess);
-				CloseHandle(pi.hThread);
-			}
-		}
-
+        runCommandOnSearchEntry(entry);
     }
     context_->unlock();
 }
+
 
 // ------------------------------------------------------------------------------------------------
 
@@ -833,7 +836,8 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
         processMessage(WM_MOVE, onMove);
         processMessage(WM_SIZE, onSize);
         processMessage(WM_SHOWWINDOW, onShow);
-
+		processMessage(WM_CONTEXTMENU, onContextMenu);
+		
         case WM_COMMAND:
             switch(LOWORD(wParam))
             {
@@ -850,6 +854,138 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
             };
     }
     return (INT_PTR)FALSE;
+}
+
+// copies the given string to window's clipboard
+void FriskWindow::setStringClipboardData(const std::string &str)
+{
+	if (OpenClipboard(dialog_))
+	{
+		// Empty the Clipboard. This also has the effect
+		// of allowing Windows to free the memory associated
+		// with any data that is in the Clipboard
+		EmptyClipboard();
+
+		HGLOBAL hClipboardData;
+		hClipboardData = GlobalAlloc(GMEM_DDESHARE, str.size()+1);
+
+		char * pchData;
+		pchData = (char*)GlobalLock(hClipboardData);
+		strcpy(pchData, LPCSTR(str.c_str()));
+
+		GlobalUnlock(hClipboardData);
+
+		SetClipboardData(CF_TEXT,hClipboardData);
+
+		CloseClipboard();
+	}
+}
+
+// search window popup menu options
+enum ESearchWindowContextOptions
+{
+	ESearchWindowContextOptions_OPEN = 1,
+	ESearchWindowContextOptions_OPEN_LOCATION,
+	ESearchWindowContextOptions_COPY_TEXT,
+	ESearchWindowContextOptions_COPY_FILENAME,
+	ESearchWindowContextOptions_COPY_LINE,
+};
+
+// creates a popup menu for the searchWindow
+void FriskWindow::popSearchWindowContextMenu(POINT *clientPos)
+{
+	int pos = SendMessage(outputCtrl_, EM_CHARFROMPOS, 0, (LPARAM)clientPos);
+
+	context_->lock();
+	const SearchEntry *entry = getSearchEntryByOffset(pos);
+	if (entry)
+	{
+		HMENU hMenuPopup = CreatePopupMenu();
+
+		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_OPEN, "Open");
+		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_OPEN_LOCATION, "Open File Location");
+		AppendMenu(hMenuPopup, MF_SEPARATOR, 0, NULL);
+		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_TEXT, "Copy Text");
+		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_FILENAME, "Copy Filename");
+		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_LINE, "Copy Line");
+		
+		POINT screenCursorPos; 
+		GetCursorPos(&screenCursorPos);
+
+		BOOL ret = TrackPopupMenu(hMenuPopup, 
+									TPM_RETURNCMD | TPM_RIGHTBUTTON, 
+									screenCursorPos.x, screenCursorPos.y, 0, dialog_, NULL); 
+
+		switch (ret)
+		{
+			case ESearchWindowContextOptions_OPEN:
+				runCommandOnSearchEntry(entry);
+				break;
+			case ESearchWindowContextOptions_OPEN_LOCATION:
+			{
+				ITEMIDLIST *pidl = ILCreateFromPath(entry->filename_.c_str());
+				if(pidl) 
+				{
+					SHOpenFolderAndSelectItems(pidl, 0, 0, 0);
+					ILFree(pidl);
+				}
+			} break;
+
+			case ESearchWindowContextOptions_COPY_TEXT:
+			{
+				setStringClipboardData(entry->match_);
+			} break;
+
+			case ESearchWindowContextOptions_COPY_FILENAME:
+			{
+				setStringClipboardData(entry->filename_);
+			} break;
+			
+			case ESearchWindowContextOptions_COPY_LINE:
+			{
+				setStringClipboardData(entry->filename_ + entry->match_);
+			} break;
+		}
+	}
+	context_->unlock();
+}
+
+// Creates a pop up window and handles its input
+INT_PTR FriskWindow::onContextMenu(WPARAM wParam, LPARAM lParam)
+{
+	RECT rc;			// client area of window 
+	POINT pt;			// location of mouse click 
+
+	// Get the bounding rectangle of the client area. 
+	GetCursorPos(&pt);
+
+	GetClientRect(context_->getWindow(), &rc); 
+	ScreenToClient(context_->getWindow(), &pt); 
+
+	// If the position is in the client area, display a shortcut menu. 
+
+	if (PtInRect(&rc, pt))
+	{
+		popSearchWindowContextMenu(&pt);
+	}
+	
+	return TRUE;
+}
+
+// returns a SearchEntry based on the character offset
+// context_->lock(); should be called before 
+const SearchEntry* FriskWindow::getSearchEntryByOffset(int offset)
+{
+	SearchList &list = context_->list();
+	const SearchEntry *entry = NULL;
+	for(SearchList::const_iterator it = list.begin(); it != list.end(); ++it)
+	{
+		if(it->offset_ > offset)
+		{
+			return &(*it);
+		}
+	}
+	return NULL;
 }
 
 void FriskWindow::show()

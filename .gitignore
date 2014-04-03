@@ -1,0 +1,6 @@
+apps/original/Debug/
+apps/original/Release/
+*.opensdf
+*.sdf
+*.suo
+*.user
