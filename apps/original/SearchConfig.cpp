@@ -219,6 +219,32 @@ static bool jsonSetSavedSearch(cJSON *json, SavedSearch &savedSearch)
 	return true;
 }
 
+static bool jsonGetFileTypeRedirection(cJSON *json, ExtensionRedirection &extRedirect)
+{
+	if(json->type != cJSON_Object)
+		return false;
+
+	if (!jsonGetString(json, "ext", extRedirect.ext) || extRedirect.ext.empty())
+		return false;
+
+	if (!jsonGetString(json, "redirectExt", extRedirect.redirectExt) || extRedirect.redirectExt.empty())
+		return false;
+
+	return true;
+}
+
+static bool jsonSetFileTypeRedirection(cJSON *json, ExtensionRedirection &extRedirect)
+{
+	if(json->type != cJSON_Object)
+		return false;
+
+	jsonSetString(json, "ext", extRedirect.ext);
+	jsonSetString(json, "redirectExt", extRedirect.redirectExt);
+
+	return true;
+}
+
+
 // ------------------------------------------------------------------------------------------------
 
 SearchConfig::SearchConfig()
@@ -295,6 +321,20 @@ void SearchConfig::load()
 		}
 	}
 
+	cJSON *extensionRedirects = cJSON_GetObjectItem(json, "extensionRedirects");
+	if (extensionRedirects && extensionRedirects->type == cJSON_Array)
+	{
+		for(extensionRedirects = extensionRedirects->child; extensionRedirects; extensionRedirects = extensionRedirects->next)
+		{
+			ExtensionRedirection redirect;
+			if(jsonGetFileTypeRedirection(extensionRedirects, redirect))
+			{
+				extRedirections_[redirect.ext] = redirect;
+			}
+		}
+	}
+
+
     cJSON_Delete(json);
 }
 
@@ -336,6 +376,22 @@ void SearchConfig::save()
 		else
 		{
 			cJSON_Delete(savedSearch);
+		}
+	}
+
+	cJSON *extensionRedirects = cJSON_CreateArray();
+	cJSON_AddItemToObject(json, "extensionRedirects", extensionRedirects);
+	for(ExtensionRedirectionHash::iterator it = extRedirections_.begin(); it != extRedirections_.end(); ++it)
+	{
+		cJSON *extRedirect = cJSON_CreateObject();
+		
+		if(jsonSetFileTypeRedirection(extRedirect, it->second))
+		{
+			cJSON_AddItemToArray(extensionRedirects, extRedirect);
+		}
+		else
+		{
+			cJSON_Delete(extRedirect);
 		}
 	}
 

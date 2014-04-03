@@ -685,24 +685,45 @@ void FriskWindow::onSavedSearch(WPARAM wParam, LPARAM lParam)
     }
 }
 
+// gets the executable we should use to open this file
+// based on our configuration, may potentially redirect to another file type
 bool FriskWindow::getAssociatedExecutableForFile(const std::string &filename, std::string &exe_out)
 {
 	char exeBufferOut[MAX_PATH] = {0};
+	const char *pszFileQuery = filename.c_str();
+	
+	if (!config_->extRedirections_.empty())
+	{	// if we have file extension redirects, see if this file type is in our map 
+		// and redirect it to another extension type if so
+		const char *ext = PathFindExtension(pszFileQuery);
+		if (ext)
+		{
+			ExtensionRedirection &redirect = config_->extRedirections_[ext];
+			if (redirect.redirectExt.size())
+				pszFileQuery = redirect.redirectExt.c_str();
+		}
+	}
+	
 
 	DWORD bufLen = MAX_PATH;
 	if (S_OK == AssocQueryString(ASSOCF_INIT_IGNOREUNKNOWN, ASSOCSTR_EXECUTABLE, 
-		filename.c_str(), "open", exeBufferOut, &bufLen))
+									pszFileQuery, "open", exeBufferOut, &bufLen))
 	{
 		exe_out = exeBufferOut;
 		return true;
 	}
 
-	HINSTANCE ret = FindExecutable(filename.c_str(), NULL, exeBufferOut);
-	if (exeBufferOut[0] != 0)
-	{
-		exe_out = exeBufferOut;
-		return true;
+	if (pszFileQuery == filename.c_str())
+	{	// if AssocQueryString failed for whatever reason, try FindExecutable
+		// but only if we didn't redirect 
+		HINSTANCE ret = FindExecutable(filename.c_str(), NULL, exeBufferOut);
+		if (exeBufferOut[0] != 0)
+		{
+			exe_out = exeBufferOut;
+			return true;
+		}
 	}
+	
 
 	return false;
 }
@@ -716,13 +737,15 @@ void FriskWindow::getFileOpenCommand(const SearchEntry *searchEntry, const std::
 	sprintf(lineBuffer, "%d", searchEntry->line_);
 
 	if (cmd_out.size() == 0)
-	{	// empty command, try and find the right executable and configure the command to go to the right line
+	{	// empty command, try and find the right executable and configure the command to go to the right line in the file
 		std::string exeName;
-		
+
 		if (getAssociatedExecutableForFile(searchEntry->filename_, exeName))
 		{
 			const char *exename = PathFindFileName(exeName.c_str());
 			const char *pszFormat = NULL;
+
+			// todo: offer a way to configure the executable to command 
 
 			if (!stricmp(exename, "textpad.exe"))
 			{
@@ -733,7 +756,7 @@ void FriskWindow::getFileOpenCommand(const SearchEntry *searchEntry, const std::
 				pszFormat = "!EXE! \"!FILENAME!\" -cursor !LINE!:0";
 			}
 			else
-			{
+			{	// unknown exe, just try and run it with the filename as the first parameter
 				pszFormat = "!EXE! \"!FILENAME!\"";
 			}
 

@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 typedef long long s64;
 
@@ -45,22 +46,13 @@ struct SavedSearch
 
 typedef std::vector<SavedSearch> SavedSearchList;
 
-struct FileTypeRedirection
+struct ExtensionRedirection
 {
 	std::string ext;
 	std::string redirectExt;
 };
 
-typedef std::hash<FileTypeRedirection> FileTypeRedirectionHash;
-
-
-struct SmartCommandTemplates
-{
-	std::string exe;
-	std::string cmdTemplate;
-};
-
-typedef std::hash<SmartCommandTemplates> SmartCommandTemplatesHash;
+typedef std::map<std::string, ExtensionRedirection> ExtensionRedirectionHash;
 
 
 class SearchConfig
@@ -72,7 +64,7 @@ public:
     void load();
     void save();
 
-    std::string cmdTemplate_;
+	std::string cmdTemplate_;
 
     StringList matches_;
     StringList paths_;
@@ -93,7 +85,8 @@ public:
 	int highlightColor_;
 
 	SavedSearchList savedSearches_;
-
+	ExtensionRedirectionHash extRedirections_;
+	
 	static const char* getDefaultCmdAssoc();
 	static const char* getNotepadCmd();
 
