@@ -120,7 +120,7 @@ void SearchContext::append(int id, SearchEntry &entry)
 
     int textOffset = 0;
     std::string str = generateDisplay(entry, textOffset);
-    offset_ += str.length() - 1;
+    offset_ += str.length();
 
     entry.offset_ = offset_;
     list_.push_back(entry);
