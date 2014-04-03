@@ -29,6 +29,15 @@ SettingsWindow::~SettingsWindow()
     sWindow = NULL;
 }
 
+
+// updates the state of the 'Open With' command widgets based on the 'Frisk's Choice' option
+void SettingsWindow::updateCmdWidgets(bool bEnabled)
+{
+	EnableWindow(GetDlgItem(dialog_, IDC_CMD_NOTEPAD), bEnabled);
+	EnableWindow(GetDlgItem(dialog_, IDC_CMD_ASSOC), bEnabled);
+	EnableWindow(GetDlgItem(dialog_, IDC_CMD), bEnabled);
+}
+
 INT_PTR SettingsWindow::onInitDialog(HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
     dialog_ = hDlg;
@@ -38,6 +47,11 @@ INT_PTR SettingsWindow::onInitDialog(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	sprintf(textSizeStr, "%d", config_->textSize_);
 	setWindowText(GetDlgItem(dialog_, IDC_TEXTSIZE), textSizeStr);
     checkCtrl(GetDlgItem(dialog_, IDC_TRIM_FILENAMES), 0 != (config_->flags_ & SF_TRIM_FILENAMES));
+	
+	checkCtrl(GetDlgItem(dialog_, IDC_FRISK_CHOICE), 0 != config_->cmdFrisksChoice_);
+
+	updateCmdWidgets(!config_->cmdFrisksChoice_);
+	
     return TRUE;
 }
 
@@ -52,6 +66,8 @@ void SettingsWindow::onOK()
 	else
 		config_->flags_ &= ~SF_TRIM_FILENAMES;
 
+	config_->cmdFrisksChoice_ = ctrlIsChecked(GetDlgItem(dialog_, IDC_FRISK_CHOICE));
+	
 	std::string textSizeStr = getWindowText(GetDlgItem(dialog_, IDC_TEXTSIZE));
 	int textSize = atoi(textSizeStr.c_str());
 	if(textSize > 0)
@@ -118,6 +134,13 @@ void SettingsWindow::onCmdAssoc()
     setWindowText(GetDlgItem(dialog_, IDC_CMD), SearchConfig::getDefaultCmdAssoc());
 }
 
+void SettingsWindow::onCmdFrisksChoice()
+{
+	bool bIsChecked = ctrlIsChecked(GetDlgItem(dialog_, IDC_FRISK_CHOICE));
+	updateCmdWidgets(!bIsChecked);
+}
+
+
 static INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -134,6 +157,7 @@ static INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPA
                 processCommand(IDC_COLOR_HIGHLIGHT, onHighlightColor);
                 processCommand(IDC_CMD_NOTEPAD, onCmdNotepad);
                 processCommand(IDC_CMD_ASSOC, onCmdAssoc);
+				processCommand(IDC_FRISK_CHOICE, onCmdFrisksChoice);
             };
     }
     return (INT_PTR)FALSE;

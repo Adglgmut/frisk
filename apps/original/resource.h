@@ -37,3 +37,6 @@
 #define IDC_TRIM_FILENAMES                      1032
 #define IDC_BACKUP                              1033
 #define IDC_DELETE                              1035
+#define IDC_FRISK_CHOICE						1036
+
+	

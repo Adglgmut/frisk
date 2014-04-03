@@ -34,8 +34,12 @@ public:
     void onHighlightColor();
     void onCmdNotepad();
     void onCmdAssoc();
+	void onCmdFrisksChoice();
 
 protected:
+	// updates the state of the 'Open With' command widgets based on the 'Frisk's Choice' option
+	void updateCmdWidgets(bool bEnabled);
+
     HINSTANCE instance_;
     HWND dialog_;
     HWND parent_;

@@ -260,6 +260,7 @@ SearchConfig::SearchConfig()
 	textSize_ = 8;
     backgroundColor_ = RGB(224, 224, 224);
 	highlightColor_ = RGB(255, 0, 0);
+	cmdFrisksChoice_ = 0;
     cmdTemplate_ = "notepad.exe \"!FILENAME!\"";
 	backupExtensions_.push_back("friskbackup");
     fileSizes_.push_back("5000");
@@ -300,6 +301,7 @@ void SearchConfig::load()
     jsonGetInt(json, "textSize", textSize_);
     jsonGetInt(json, "backgroundColor", backgroundColor_);
     jsonGetInt(json, "highlightColor", highlightColor_);
+	jsonGetInt(json, "cmdFrisksChoice", cmdFrisksChoice_);
     jsonGetString(json, "cmdTemplate", cmdTemplate_);
     jsonGetStringList(json, "matches", matches_);
     jsonGetStringList(json, "paths", paths_);
@@ -356,6 +358,7 @@ void SearchConfig::save()
     jsonSetInt(json, "textSize", textSize_);
     jsonSetInt(json, "backgroundColor", backgroundColor_);
     jsonSetInt(json, "highlightColor", highlightColor_);
+	jsonSetInt(json, "cmdFrisksChoice", cmdFrisksChoice_);
     jsonSetString(json, "cmdTemplate", cmdTemplate_);
     jsonSetStringList(json, "matches", matches_);
     jsonSetStringList(json, "paths", paths_);

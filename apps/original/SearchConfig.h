@@ -64,7 +64,8 @@ public:
     void load();
     void save();
 
-	std::string cmdTemplate_;
+	int cmdFrisksChoice_;
+    std::string cmdTemplate_;
 
     StringList matches_;
     StringList paths_;

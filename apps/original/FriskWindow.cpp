@@ -736,7 +736,7 @@ void FriskWindow::getFileOpenCommand(const SearchEntry *searchEntry, const std::
 
 	sprintf(lineBuffer, "%d", searchEntry->line_);
 
-	if (cmd_out.size() == 0)
+	if (config_->cmdFrisksChoice_ != 0 || cmd_out.empty())
 	{	// empty command, try and find the right executable and configure the command to go to the right line in the file
 		std::string exeName;
 
