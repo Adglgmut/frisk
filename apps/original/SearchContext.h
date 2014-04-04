@@ -22,6 +22,7 @@ std::string getWindowText(HWND ctrl);
 void setWindowText(HWND ctrl, const std::string &s);
 bool ctrlIsChecked(HWND ctrl);
 void checkCtrl(HWND ctrl, bool checked);
+char * strstri(char * haystack, const char * needle);
 
 class ScopedMutex
 {

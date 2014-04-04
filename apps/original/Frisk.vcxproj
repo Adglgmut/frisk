@@ -94,6 +94,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\external\cJSON\cJSON.c" />
+    <ClCompile Include="FindInSearchWindow.cpp" />
     <ClCompile Include="FriskWindow.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SearchConfig.cpp" />
@@ -102,6 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\external\cJSON\cJSON.h" />
+    <ClInclude Include="FindInSearchWindow.h" />
     <ClInclude Include="FriskWindow.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SearchConfig.h" />

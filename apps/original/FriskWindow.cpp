@@ -8,6 +8,7 @@
 #include "FriskWindow.h"
 #include "SettingsWindow.h"
 #include "resource.h"
+#include "FindInSearchWindow.h"
 #include <Commdlg.h>
 #include <ShellAPI.h>
 #include <Shlwapi.h>
@@ -59,7 +60,7 @@ static void comboClear(HWND ctrl)
     SendMessage(ctrl, CB_RESETCONTENT, 0, 0);
 }
 
-static void comboSet(HWND ctrl, StringList &list)
+void comboSet(HWND ctrl, StringList &list)
 {
     comboClear(ctrl);
     for(StringList::iterator it = list.begin(); it != list.end(); ++it)
@@ -111,6 +112,7 @@ FriskWindow::FriskWindow(HINSTANCE instance)
 , context_(NULL)
 , running_(false)
 , closing_(false)
+, pFindSearchWindow_(NULL)
 {
     sWindow = this;
 
@@ -257,6 +259,7 @@ INT_PTR FriskWindow::onInitDialog(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	backupExtCtrl_     = GetDlgItem(hDlg, IDC_BACKUP_EXT);
     fileSizesCtrl_     = GetDlgItem(hDlg, IDC_FILESIZE);
 	savedSearchesCtrl_ = GetDlgItem(hDlg, IDC_SAVEDSEARCHES);
+
 
     SendMessage(pathCtrl_,          WM_SETFONT, (WPARAM)font_, MAKEWORD(TRUE, 0));
     SendMessage(filespecCtrl_,      WM_SETFONT, (WPARAM)font_, MAKEWORD(TRUE, 0));
@@ -405,6 +408,7 @@ void FriskWindow::updateSavedSearchControl()
         SendMessage(savedSearchesCtrl_, CB_ADDSTRING, 0, (LPARAM)it->name.c_str());
     }
 }
+
 
 INT_PTR FriskWindow::onPoke(WPARAM wParam, LPARAM lParam)
 {
@@ -829,6 +833,34 @@ void FriskWindow::onDoubleClickOutput()
     context_->unlock();
 }
 
+INT_PTR FriskWindow::onHotkey(WPARAM wParam, LPARAM lParam)
+{
+	if (!pFindSearchWindow_)
+	{
+		pFindSearchWindow_ = new FindInSearchWindow(instance_, dialog_, outputCtrl_, config_);
+		if (!pFindSearchWindow_)
+			return TRUE;
+	}
+
+	pFindSearchWindow_->show();
+	
+
+	return TRUE;
+}
+
+INT_PTR FriskWindow::onFocus(WPARAM wParam, LPARAM lParam)
+{	
+	// RegisterHotKey is system wide, so register/unregister with focus/unfocusing
+	if (wParam > WA_INACTIVE)
+	{
+		RegisterHotKey(dialog_, 1, MOD_CONTROL, 'F');
+	}
+	else
+	{
+		UnregisterHotKey(dialog_, 1);
+	}
+	return TRUE;
+}
 
 // ------------------------------------------------------------------------------------------------
 
@@ -844,6 +876,9 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
         processMessage(WM_SIZE, onSize);
         processMessage(WM_SHOWWINDOW, onShow);
 		processMessage(WM_CONTEXTMENU, onContextMenu);
+		processMessage(WM_HOTKEY, onHotkey);
+		processMessage(WM_ACTIVATE, onFocus);
+		
 		
         case WM_COMMAND:
             switch(LOWORD(wParam))

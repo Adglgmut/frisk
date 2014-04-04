@@ -12,7 +12,7 @@
 
 #define POKES_PER_SECOND (5)
 
-static char * strstri(char * haystack, const char * needle)
+char * strstri(char * haystack, const char * needle)
 {
     char *front = haystack;
     for(; *front; front++)

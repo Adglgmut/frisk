@@ -264,6 +264,9 @@ SearchConfig::SearchConfig()
     cmdTemplate_ = "notepad.exe \"!FILENAME!\"";
 	backupExtensions_.push_back("friskbackup");
     fileSizes_.push_back("5000");
+	findInSearchMatchCase_ = 0;
+	findInSearchMatchWhole_ = 0;
+	findInSearchRegex_ = 0;
 
     TCHAR tempPath[MAX_PATH];
     if(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_DESKTOPDIRECTORY|CSIDL_FLAG_CREATE, NULL, 0, tempPath)))
@@ -302,6 +305,10 @@ void SearchConfig::load()
     jsonGetInt(json, "backgroundColor", backgroundColor_);
     jsonGetInt(json, "highlightColor", highlightColor_);
 	jsonGetInt(json, "cmdFrisksChoice", cmdFrisksChoice_);
+	jsonGetInt(json, "findInSearchMatchCase", findInSearchMatchCase_);
+	jsonGetInt(json, "findInSearchMatchWhole", findInSearchMatchWhole_);
+	jsonGetInt(json, "findInSearchRegex", findInSearchRegex_);
+
     jsonGetString(json, "cmdTemplate", cmdTemplate_);
     jsonGetStringList(json, "matches", matches_);
     jsonGetStringList(json, "paths", paths_);
@@ -309,6 +316,7 @@ void SearchConfig::load()
     jsonGetStringList(json, "replaces", replaces_);
 	jsonGetStringList(json, "backupExtensions", backupExtensions_);
 	jsonGetStringList(json, "fileSizes", fileSizes_);
+	jsonGetStringList(json, "findInSearch", findInSearchStrings_);
 
 	cJSON *savedSearches = cJSON_GetObjectItem(json, "savedSearches");
 	if(savedSearches && savedSearches->type == cJSON_Array)
@@ -359,6 +367,9 @@ void SearchConfig::save()
     jsonSetInt(json, "backgroundColor", backgroundColor_);
     jsonSetInt(json, "highlightColor", highlightColor_);
 	jsonSetInt(json, "cmdFrisksChoice", cmdFrisksChoice_);
+	jsonSetInt(json, "findInSearchMatchCase", findInSearchMatchCase_);
+	jsonSetInt(json, "findInSearchMatchWhole", findInSearchMatchWhole_);
+	jsonSetInt(json, "findInSearchRegex", findInSearchRegex_);
     jsonSetString(json, "cmdTemplate", cmdTemplate_);
     jsonSetStringList(json, "matches", matches_);
     jsonSetStringList(json, "paths", paths_);
@@ -366,6 +377,8 @@ void SearchConfig::save()
     jsonSetStringList(json, "replaces", replaces_);
 	jsonSetStringList(json, "backupExtensions", backupExtensions_);
 	jsonSetStringList(json, "fileSizes", fileSizes_);
+	jsonSetStringList(json, "findInSearch", findInSearchStrings_);
+	
 
 	cJSON *savedSearches = cJSON_CreateArray();
 	cJSON_AddItemToObject(json, "savedSearches", savedSearches);

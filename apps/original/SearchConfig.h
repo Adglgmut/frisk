@@ -85,6 +85,11 @@ public:
     int backgroundColor_;
 	int highlightColor_;
 
+	StringList findInSearchStrings_;
+	int findInSearchMatchCase_;
+	int findInSearchMatchWhole_;
+	int findInSearchRegex_;
+
 	SavedSearchList savedSearches_;
 	ExtensionRedirectionHash extRedirections_;
 	

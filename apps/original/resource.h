@@ -6,6 +6,7 @@
 #define IDI_FRISK                               107
 #define IDI_SMALL                               108
 #define IDD_SETTINGS                            129
+#define IDD_SEARCHWINDOW_FIND                   131
 #define IDC_BROWSE                              1001
 #define IDC_STOP                                1002
 #define IDC_MATCH                               1003
@@ -37,6 +38,12 @@
 #define IDC_TRIM_FILENAMES                      1032
 #define IDC_BACKUP                              1033
 #define IDC_DELETE                              1035
-#define IDC_FRISK_CHOICE						1036
-
-	
+#define IDC_FRISK_CHOICE                        1036
+#define IDC_FIND_TEXT                           40000
+#define ID_FIND_CLOSE                           40001
+#define IDC_FIND_MATCHCASE                      40003
+#define IDC_FIND_MATCWHOLEWORDS                 40004
+#define IDC_FIND_REGEX                          40005
+#define ID_OPTION_FRAME                         40006
+#define ID_FIND_LABEL                           40007
+#define ID_FIND_NEXT                            40008

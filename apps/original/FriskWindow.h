@@ -14,6 +14,10 @@
 
 #include "SearchContext.h"
 
+class FindInSearchWindow;
+
+void comboSet(HWND ctrl, StringList &list);
+
 class FriskWindow
 {
 public:
@@ -40,6 +44,8 @@ public:
     INT_PTR onSize(WPARAM wParam, LPARAM lParam);
     INT_PTR onShow(WPARAM wParam, LPARAM lParam);
 	INT_PTR onContextMenu(WPARAM wParam, LPARAM lParam);
+	INT_PTR onHotkey(WPARAM wParam, LPARAM lParam);
+	INT_PTR onFocus(WPARAM wParam, LPARAM lParam);
 
     void search(int extraFlags);
 	bool ensureSavedSearchNameExists();
@@ -75,7 +81,7 @@ protected:
 
 	// copies the given string to window's clipboard
 	void setStringClipboardData(const std::string &str);
-
+		
     HINSTANCE instance_;
     HFONT font_;
     HWND dialog_;
@@ -90,6 +96,7 @@ protected:
 	HWND savedSearchesCtrl_;
 	SearchContext *context_;
     SearchConfig *config_;
+	FindInSearchWindow *pFindSearchWindow_;
 	
     bool running_;
     bool closing_;
