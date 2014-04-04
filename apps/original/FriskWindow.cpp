@@ -408,14 +408,21 @@ void FriskWindow::updateSavedSearchControl()
 
 INT_PTR FriskWindow::onPoke(WPARAM wParam, LPARAM lParam)
 {
-    if(wParam != context_->searchID())
-        return FALSE;
-
 	PokeData *pokeData = (PokeData *)lParam;
+
+    if(wParam != context_->searchID())
+	{
+		delete pokeData;
+        return FALSE;
+	}
+
     updateState(pokeData->progress);
 
     if(pokeData->text.empty())
+	{
+		delete pokeData;
         return TRUE;
+	}
 
     // Disable redrawing briefly
     SendMessage(outputCtrl_, WM_SETREDRAW, FALSE, 0);
