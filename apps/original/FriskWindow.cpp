@@ -71,7 +71,7 @@ void comboSet(HWND ctrl, StringList &list)
     SendMessage(ctrl, CB_SETEDITSEL, 0, MAKEWORD(-1, -1));
 }
 
-static void comboLRU(HWND ctrl, StringList &list, unsigned int maxRecent)
+void comboLRU(HWND ctrl, StringList &list, unsigned int maxRecent)
 {
     std::string chosen = getWindowText(ctrl);
 

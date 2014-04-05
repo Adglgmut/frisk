@@ -17,6 +17,7 @@
 class FindInSearchWindow;
 
 void comboSet(HWND ctrl, StringList &list);
+void comboLRU(HWND ctrl, StringList &list, unsigned int maxRecent);
 void richEditGetSelectionText(HWND hwnd, int min, int max, std::string &selectionOut);
 
 class FriskWindow

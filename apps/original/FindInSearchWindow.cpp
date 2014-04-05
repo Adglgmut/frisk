@@ -221,7 +221,7 @@ void FindInSearchWindow::addFindTextToConfig(std::string &addString)
 	if (!matched)
 	{
 		list.insert(list.begin(), addString);
-		comboSet(GetDlgItem(dialog_, IDC_FIND_TEXT), config_->findInSearchStrings_);
+		comboLRU(GetDlgItem(dialog_, IDC_FIND_TEXT), config_->findInSearchStrings_, 10);
 	}
 }
 
@@ -238,10 +238,10 @@ void FindInSearchWindow::doFindNext()
 			const char *error;
 			int erroffset;
 			int flags = 0;
+
 			if (!config_->findInSearchRegex_)
-			{
+			{	// use regex to do findInSearchMatchWhole_
 				assert(config_->findInSearchMatchWhole_);
-				// not actual regex, but we're going to use it to do findInSearchMatchWhole_
 				regexString = searchString_;
 				regexString.insert(0, "\\W(");
 				regexString.append(")\\W");
@@ -389,10 +389,11 @@ void FindInSearchWindow::optionChanged(WPARAM wParam, LPARAM lParam)
 bool FindInSearchWindow::show()
 {
 	if (searchWindow_)
-	{
+	{	
 		CHARRANGE currentSelection;
 		std::string selection;
-		
+		// get the current selection in our window, and if it's a single line, use it as our search
+		// by adding it to our string list on the config
 		SendMessage(searchWindow_, EM_EXGETSEL, 0, (LPARAM)&currentSelection);
 		if (currentSelection.cpMax > currentSelection.cpMin)
 		{
