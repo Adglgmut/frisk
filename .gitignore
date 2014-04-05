@@ -4,3 +4,4 @@ apps/original/Release/
 *.sdf
 *.suo
 *.user
+*.ipch

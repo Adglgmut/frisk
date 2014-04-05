@@ -17,6 +17,7 @@
 class FindInSearchWindow;
 
 void comboSet(HWND ctrl, StringList &list);
+void richEditGetSelectionText(HWND hwnd, int min, int max, std::string &selectionOut);
 
 class FriskWindow
 {
@@ -66,7 +67,12 @@ public:
 	void onLoad();
 	void onDelete();
     void onSavedSearch(WPARAM wParam, LPARAM lParam);
+	bool isActive();
+
 protected:
+
+	static LRESULT CALLBACK KeypressHook(int code, WPARAM wParam, LPARAM lParam);
+
 
 	void getFileOpenCommand(const SearchEntry *searchEntry, const std::string &cmdTemplate, std::string &cmd_out);
 	void runCommandOnSearchEntry(const SearchEntry *pEntry);
@@ -94,6 +100,7 @@ protected:
 	HWND backupExtCtrl_;
     HWND fileSizesCtrl_;
 	HWND savedSearchesCtrl_;
+	HHOOK keypressHook_;
 	SearchContext *context_;
     SearchConfig *config_;
 	FindInSearchWindow *pFindSearchWindow_;

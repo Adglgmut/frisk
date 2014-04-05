@@ -113,6 +113,7 @@ FriskWindow::FriskWindow(HINSTANCE instance)
 , running_(false)
 , closing_(false)
 , pFindSearchWindow_(NULL)
+, keypressHook_(NULL)
 {
     sWindow = this;
 
@@ -126,8 +127,10 @@ FriskWindow::~FriskWindow()
 {
     DeleteObject(font_);
     delete context_;
+	if (keypressHook_)
+		UnhookWindowsHookEx(keypressHook_);
     sWindow = NULL;
-
+	
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -314,6 +317,10 @@ INT_PTR FriskWindow::onInitDialog(HWND hDlg, WPARAM wParam, LPARAM lParam)
     MoveWindow(dialog_, config_->windowX_, config_->windowY_, width, height, FALSE);
     if(shouldMaximize)
         ShowWindow(dialog_, SW_MAXIMIZE);
+
+	// get a hook to the Keyboard messages to capture the ESC key so it doesn't close our app
+	keypressHook_ = SetWindowsHookEx(WH_KEYBOARD, KeypressHook, instance_, GetCurrentThreadId() );
+
     return TRUE;
 }
 
@@ -862,6 +869,11 @@ INT_PTR FriskWindow::onFocus(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
+bool FriskWindow::isActive()
+{
+	return (GetActiveWindow() == dialog_);
+}
+
 // ------------------------------------------------------------------------------------------------
 
 static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -898,6 +910,23 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
     return (INT_PTR)FALSE;
 }
 
+/*static*/ LRESULT CALLBACK FriskWindow::KeypressHook(int code, WPARAM wParam, LPARAM lParam)
+{  
+	if(code == HC_ACTION && ((DWORD)lParam & 0x80000000) == 0)	// if there is an incoming action and a key was pressed
+	{
+		if (sWindow->isActive())
+		{
+			switch(wParam)
+			{
+			// The ESC key is pressed, return that we handled it
+			case VK_ESCAPE:
+				return TRUE;
+			}
+		}
+	}
+	return CallNextHookEx(sWindow->keypressHook_, code, wParam, lParam);
+}
+
 // copies the given string to window's clipboard
 void FriskWindow::setStringClipboardData(const std::string &str)
 {
@@ -908,17 +937,20 @@ void FriskWindow::setStringClipboardData(const std::string &str)
 		// with any data that is in the Clipboard
 		EmptyClipboard();
 
-		HGLOBAL hClipboardData;
-		hClipboardData = GlobalAlloc(GMEM_DDESHARE, str.size()+1);
+		if (!str.empty())
+		{
+			HGLOBAL hClipboardData;
+			hClipboardData = GlobalAlloc(GMEM_DDESHARE, str.size()+1);
 
-		char * pchData;
-		pchData = (char*)GlobalLock(hClipboardData);
-		strcpy(pchData, LPCSTR(str.c_str()));
+			char * pchData;
+			pchData = (char*)GlobalLock(hClipboardData);
+			strcpy(pchData, LPCSTR(str.c_str()));
 
-		GlobalUnlock(hClipboardData);
+			GlobalUnlock(hClipboardData);
 
-		SetClipboardData(CF_TEXT,hClipboardData);
-
+			SetClipboardData(CF_TEXT,hClipboardData);
+		}
+		
 		CloseClipboard();
 	}
 }
@@ -928,10 +960,33 @@ enum ESearchWindowContextOptions
 {
 	ESearchWindowContextOptions_OPEN = 1,
 	ESearchWindowContextOptions_OPEN_LOCATION,
+	ESearchWindowContextOptions_COPY_SELECTED,
 	ESearchWindowContextOptions_COPY_TEXT,
 	ESearchWindowContextOptions_COPY_FILENAME,
 	ESearchWindowContextOptions_COPY_LINE,
 };
+
+void richEditGetSelectionText(HWND hwnd, int min, int max, std::string &selectionOut)
+{
+	int count = max - min;
+	if (count > 0)
+	{
+		CHARRANGE range;
+		selectionOut.reserve(count + 1);
+
+		range.cpMin = min;
+		range.cpMax = max;
+		// just be sure and select what we had initially
+		SendMessage(hwnd, EM_EXSETSEL, 0, (LPARAM)&range);
+
+		// MSDN This message returns the number of characters copied, not including the terminating null character.
+		int textLength = SendMessage(hwnd, EM_GETSELTEXT, 0, (WPARAM)selectionOut.c_str());
+		// SendMessage copies the string into the buffer, but the std::string doesn't know its been updated
+		// force the size update in the std::string
+		selectionOut._Eos(textLength);
+	}
+	
+}
 
 // creates a popup menu for the searchWindow
 void FriskWindow::popSearchWindowContextMenu(POINT *clientPos)
@@ -947,10 +1002,19 @@ void FriskWindow::popSearchWindowContextMenu(POINT *clientPos)
 		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_OPEN, "Open");
 		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_OPEN_LOCATION, "Open File Location");
 		AppendMenu(hMenuPopup, MF_SEPARATOR, 0, NULL);
+		
+		CHARRANGE selRange;
+		SendMessage(outputCtrl_, EM_EXGETSEL, 0, (LPARAM)&selRange);
+		if (selRange.cpMax > selRange.cpMin)
+		{	// if the user has something selected, allow copy
+			AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_SELECTED, "Copy");
+		}
+
 		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_TEXT, "Copy Text");
 		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_FILENAME, "Copy Filename");
 		AppendMenu(hMenuPopup, MF_STRING, ESearchWindowContextOptions_COPY_LINE, "Copy Line");
-		
+			
+
 		POINT screenCursorPos; 
 		GetCursorPos(&screenCursorPos);
 
@@ -971,6 +1035,14 @@ void FriskWindow::popSearchWindowContextMenu(POINT *clientPos)
 					SHOpenFolderAndSelectItems(pidl, 0, 0, 0);
 					ILFree(pidl);
 				}
+			} break;
+
+			case ESearchWindowContextOptions_COPY_SELECTED:
+			{
+				std::string selection;
+				richEditGetSelectionText(outputCtrl_, selRange.cpMin, selRange.cpMax, selection);
+				setStringClipboardData(selection);
+
 			} break;
 
 			case ESearchWindowContextOptions_COPY_TEXT:
@@ -1032,5 +1104,5 @@ const SearchEntry* FriskWindow::getSearchEntryByOffset(int offset)
 
 void FriskWindow::show()
 {
-    DialogBox(instance_, MAKEINTRESOURCE(IDD_FRISK), NULL, FriskProc);
+	DialogBox(instance_, MAKEINTRESOURCE(IDD_FRISK), NULL, FriskProc);
 }

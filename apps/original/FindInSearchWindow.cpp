@@ -22,6 +22,7 @@ FindInSearchWindow::FindInSearchWindow(HINSTANCE instance, HWND parent, HWND sea
 	, lastSearchFailedPos_(false)
 	, dialog_(0)
 	, matchRegex_(NULL)
+	, keypressHook_(NULL)
 {
 	sWindow = this;
 }
@@ -171,10 +172,12 @@ INT_PTR FindInSearchWindow::onInitDialog(HWND hDlg, WPARAM wParam, LPARAM lParam
 	// set the text box to have focus first
 	PostMessage(dialog_, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(dialog_, IDC_FIND_TEXT), TRUE);
 		
-	// get a hook to the 
+	// get a hook to the Keyboard messages to get around not getting the reteurn and escape WM_KEYDOWN messages to our proc
 	keypressHook_ = SetWindowsHookEx(WH_KEYBOARD, FindInSearchKeypressHook, instance_, GetCurrentThreadId() );
 
+	// Intercept the WndProc for the Find text combo box, this is to surpress return beeping for some reason
 	defEditProc_ = (WNDPROC)SetWindowLongPtr(GetDlgItem(dialog_, IDC_FIND_TEXT), GWL_WNDPROC, (long)EditProc);
+
 	return TRUE;
 }
 
@@ -195,6 +198,30 @@ void FindInSearchWindow::onFindNext(WPARAM wParam, LPARAM lParam)
 	if (msg == BN_CLICKED)
 	{
 		doFindNext();
+	}
+}
+
+void FindInSearchWindow::addFindTextToConfig(std::string &addString)
+{
+	if (addString.empty())
+		return;
+
+	StringList &list = config_->findInSearchStrings_;
+	bool matched = false;
+	
+	for(StringList::iterator it = list.begin(); it != list.end(); ++it)
+	{
+		if (it->compare(addString) == 0)
+		{
+			matched = true;
+			break;
+		}
+	}
+
+	if (!matched)
+	{
+		list.insert(list.begin(), addString);
+		comboSet(GetDlgItem(dialog_, IDC_FIND_TEXT), config_->findInSearchStrings_);
 	}
 }
 
@@ -247,25 +274,7 @@ void FindInSearchWindow::doFindNext()
 
 		if (findNextMatch())
 		{
-			bool matched = false;
-			
-
-			for(StringList::iterator it = config_->findInSearchStrings_.begin(); 
-					it != config_->findInSearchStrings_.end(); ++it)
-			{
-				if (it->compare(searchString_) == 0)
-				{
-					matched = true;
-					break;
-				}
-			}
-
-			if (!matched)
-			{
-				config_->findInSearchStrings_.insert(config_->findInSearchStrings_.begin(), searchString_);
-				comboSet(GetDlgItem(dialog_, IDC_FIND_TEXT), config_->findInSearchStrings_);
-			}
-			
+			addFindTextToConfig(searchString_);
 		}
 		else
 		{
@@ -379,10 +388,33 @@ void FindInSearchWindow::optionChanged(WPARAM wParam, LPARAM lParam)
 
 bool FindInSearchWindow::show()
 {
+	if (searchWindow_)
+	{
+		CHARRANGE currentSelection;
+		std::string selection;
+		
+		SendMessage(searchWindow_, EM_EXGETSEL, 0, (LPARAM)&currentSelection);
+		if (currentSelection.cpMax > currentSelection.cpMin)
+		{
+			richEditGetSelectionText(searchWindow_, currentSelection.cpMin, currentSelection.cpMax, selection);
+			if (!strstr(selection.c_str(), "\v"))
+			{
+				addFindTextToConfig(selection);
+			}
+		}
+	}
+
 	if (!dialog_)
 	{
 		dialog_ = CreateDialog(instance_, MAKEINTRESOURCE(IDD_SEARCHWINDOW_FIND), parent_, FindInSearchProc);
 	}
+	else
+	{
+		onInitDialog(dialog_, 0, 0);
+	}
+	
+	
+	
 
 	return true;
 }

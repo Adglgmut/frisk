@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <xstring>
 #include <pcre.h>
+#include <Richedit.h>
 
 class SearchConfig;
 
@@ -28,6 +29,7 @@ public:
 protected:
 	void doFindNext();
 	bool findNextMatch();
+	void addFindTextToConfig(std::string &addString);
 	
 	static LRESULT CALLBACK FindInSearchKeypressHook(int code, WPARAM wParam, LPARAM lParam);
 	static INT_PTR CALLBACK FindInSearchProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
@@ -47,7 +49,8 @@ protected:
 	int richEditTextStrLen_;
 
 	std::string searchString_;
-	pcre *matchRegex_;	
+	pcre *matchRegex_;
+	CHARRANGE lastSearchSelection_;
 	int lastSearchFailedPos_;
 };
 
