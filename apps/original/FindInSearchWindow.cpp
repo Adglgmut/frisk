@@ -309,7 +309,7 @@ void FindInSearchWindow::optionChanged(WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg)
 	{
-	case WM_KEYDOWN:
+		case WM_KEYDOWN:
 		{
 			int x= 0;
 			if (wParam == VK_RETURN)
@@ -317,18 +317,17 @@ void FindInSearchWindow::optionChanged(WPARAM wParam, LPARAM lParam)
 				sWindow->doFindNext();
 				return TRUE;
 			}
-		} break;	
-	case CB_GETDROPPEDSTATE:
+		} break;
+
+		// HACK, intercepting this messages gets rid of an error sound upon 
+		// hitting the Return key when the text box is being edited
+		case CB_GETDROPPEDSTATE:
 		{
 			return TRUE;
 		} break;
-
-	default:
-		return CallWindowProc(sWindow->defEditProc_, hwnd, uMsg, wParam, lParam);
-
 	}
 
-	return FALSE;
+	return CallWindowProc(sWindow->defEditProc_, hwnd, uMsg, wParam, lParam);;
 }
 
 
@@ -388,6 +387,9 @@ void FindInSearchWindow::optionChanged(WPARAM wParam, LPARAM lParam)
 
 bool FindInSearchWindow::show()
 {
+	if (dialog_)
+		return true;
+
 	if (searchWindow_)
 	{	
 		CHARRANGE currentSelection;
