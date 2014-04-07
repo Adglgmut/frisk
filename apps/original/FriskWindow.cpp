@@ -110,10 +110,11 @@ FriskWindow::FriskWindow(HINSTANCE instance)
 : instance_(instance)
 , dialog_((HWND)INVALID_HANDLE_VALUE)
 , context_(NULL)
-, running_(false)
-, closing_(false)
 , pFindSearchWindow_(NULL)
 , keypressHook_(NULL)
+, running_(false)
+, closing_(false)
+, findHotkeyRegistered_(false)
 {
     sWindow = this;
 
@@ -512,6 +513,17 @@ INT_PTR FriskWindow::onMove(WPARAM wParam, LPARAM lParam)
 INT_PTR FriskWindow::onSize(WPARAM wParam, LPARAM lParam)
 {
     outputUpdatePos();
+	
+	// Handle Hotkey with window resizing
+	if (wParam == SIZE_MINIMIZED)
+	{
+		registerFindHotkey(false);
+	}
+	else if (wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED)
+	{
+		registerFindHotkey(true);
+	}
+
     if(wParam == SIZE_MAXIMIZED)
     {
         config_->windowMaximized_ = 1;
@@ -529,6 +541,8 @@ INT_PTR FriskWindow::onSize(WPARAM wParam, LPARAM lParam)
     {
         windowToConfig();
     }
+
+
     return TRUE;
 }
 
@@ -855,19 +869,38 @@ INT_PTR FriskWindow::onHotkey(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
+void FriskWindow::registerFindHotkey(bool bRegister)
+{
+	if (bRegister != findHotkeyRegistered_)
+	{
+		findHotkeyRegistered_ = bRegister;
+		if (findHotkeyRegistered_)
+		{
+			RegisterHotKey(dialog_, 1, MOD_CONTROL, 'F');
+		}
+		else
+		{
+			UnregisterHotKey(dialog_, 1);
+		}
+	}
+}
+
+
 INT_PTR FriskWindow::onFocus(WPARAM wParam, LPARAM lParam)
 {	
 	// RegisterHotKey is system wide, so register/unregister with focus/unfocusing
 	if (wParam > WA_INACTIVE)
 	{
-		RegisterHotKey(dialog_, 1, MOD_CONTROL, 'F');
+		registerFindHotkey(true);
 	}
 	else
 	{
-		UnregisterHotKey(dialog_, 1);
+		registerFindHotkey(false);
 	}
 	return TRUE;
 }
+
+
 
 bool FriskWindow::isActive()
 {
@@ -890,6 +923,7 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 		processMessage(WM_CONTEXTMENU, onContextMenu);
 		processMessage(WM_HOTKEY, onHotkey);
 		processMessage(WM_ACTIVATE, onFocus);
+		
 		
 		
         case WM_COMMAND:
