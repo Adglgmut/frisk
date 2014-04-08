@@ -514,16 +514,6 @@ INT_PTR FriskWindow::onSize(WPARAM wParam, LPARAM lParam)
 {
     outputUpdatePos();
 	
-	// Handle Hotkey with window resizing
-	if (wParam == SIZE_MINIMIZED)
-	{
-		registerFindHotkey(false);
-	}
-	else if (wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED)
-	{
-		registerFindHotkey(true);
-	}
-
     if(wParam == SIZE_MAXIMIZED)
     {
         config_->windowMaximized_ = 1;
@@ -541,8 +531,7 @@ INT_PTR FriskWindow::onSize(WPARAM wParam, LPARAM lParam)
     {
         windowToConfig();
     }
-
-
+	
     return TRUE;
 }
 
@@ -854,53 +843,17 @@ void FriskWindow::onDoubleClickOutput()
     context_->unlock();
 }
 
-INT_PTR FriskWindow::onHotkey(WPARAM wParam, LPARAM lParam)
+void FriskWindow::openSearchWindow()
 {
 	if (!pFindSearchWindow_)
 	{
 		pFindSearchWindow_ = new FindInSearchWindow(instance_, dialog_, outputCtrl_, config_);
 		if (!pFindSearchWindow_)
-			return TRUE;
+			return;
 	}
 
 	pFindSearchWindow_->show();
-	
-
-	return TRUE;
 }
-
-void FriskWindow::registerFindHotkey(bool bRegister)
-{
-	if (bRegister != findHotkeyRegistered_)
-	{
-		findHotkeyRegistered_ = bRegister;
-		if (findHotkeyRegistered_)
-		{
-			RegisterHotKey(dialog_, 1, MOD_CONTROL, 'F');
-		}
-		else
-		{
-			UnregisterHotKey(dialog_, 1);
-		}
-	}
-}
-
-
-INT_PTR FriskWindow::onFocus(WPARAM wParam, LPARAM lParam)
-{	
-	// RegisterHotKey is system wide, so register/unregister with focus/unfocusing
-	if (wParam > WA_INACTIVE)
-	{
-		registerFindHotkey(true);
-	}
-	else
-	{
-		registerFindHotkey(false);
-	}
-	return TRUE;
-}
-
-
 
 bool FriskWindow::isActive()
 {
@@ -921,11 +874,7 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
         processMessage(WM_SIZE, onSize);
         processMessage(WM_SHOWWINDOW, onShow);
 		processMessage(WM_CONTEXTMENU, onContextMenu);
-		processMessage(WM_HOTKEY, onHotkey);
-		processMessage(WM_ACTIVATE, onFocus);
-		
-		
-		
+				
         case WM_COMMAND:
             switch(LOWORD(wParam))
             {
@@ -955,6 +904,13 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 			// The ESC key is pressed, return that we handled it
 			case VK_ESCAPE:
 				return TRUE;
+			case 'F':
+				if (GetKeyState(VK_CONTROL))
+				{
+					sWindow->openSearchWindow();
+					return TRUE;
+				} 
+				break;
 			}
 		}
 	}

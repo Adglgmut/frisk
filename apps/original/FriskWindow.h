@@ -46,8 +46,6 @@ public:
     INT_PTR onSize(WPARAM wParam, LPARAM lParam);
     INT_PTR onShow(WPARAM wParam, LPARAM lParam);
 	INT_PTR onContextMenu(WPARAM wParam, LPARAM lParam);
-	INT_PTR onHotkey(WPARAM wParam, LPARAM lParam);
-	INT_PTR onFocus(WPARAM wParam, LPARAM lParam);
 	
 
     void search(int extraFlags);
@@ -90,7 +88,7 @@ protected:
 	// copies the given string to window's clipboard
 	void setStringClipboardData(const std::string &str);
 		
-	void registerFindHotkey(bool bRegister);
+	void openSearchWindow();
 
     HINSTANCE instance_;
     HFONT font_;
