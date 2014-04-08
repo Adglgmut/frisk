@@ -5,3 +5,4 @@ apps/original/Release/
 *.suo
 *.user
 *.ipch
+*.tmp
