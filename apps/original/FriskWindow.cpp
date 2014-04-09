@@ -901,16 +901,20 @@ static INT_PTR CALLBACK FriskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 		{
 			switch(wParam)
 			{
-			// The ESC key is pressed, return that we handled it
-			case VK_ESCAPE:
-				return TRUE;
-			case 'F':
-				if (GetKeyState(VK_CONTROL))
-				{
-					sWindow->openSearchWindow();
+				// The ESC key is pressed, return that we handled it
+				case VK_ESCAPE:
 					return TRUE;
-				} 
-				break;
+				case 'F':
+				{
+					// GetKeyState: The return value specifies the status of the specified virtual key, as follows:
+					// If the high-order bit is 1, the key is down; otherwise, it is up.
+					if (GetKeyState(VK_CONTROL) & 0x8000)
+					{
+						sWindow->openSearchWindow();
+						return TRUE;
+					} 
+					break;
+				}
 			}
 		}
 	}
